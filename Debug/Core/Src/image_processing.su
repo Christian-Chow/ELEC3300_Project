@@ -1,0 +1,9 @@
+../Core/Src/image_processing.c:5:13:uint16_to_string	24	static
+../Core/Src/image_processing.c:19:6:ImageProcess_RGB565_ToComponents	24	static
+../Core/Src/image_processing.c:29:9:ImageProcess_IsColorInRange	32	static
+../Core/Src/image_processing.c:53:6:ImageProcess_ColorDetection	48	static
+../Core/Src/image_processing.c:116:6:ImageProcess_ExtractColorRange	32	static
+../Core/Src/image_processing.c:145:6:ImageProcess_SamplePixelAt	24	static
+../Core/Src/image_processing.c:175:6:ImageProcess_DisplayColorInfo	40	static
+../Core/Src/image_processing.c:209:6:ImageProcess_SampleMultiplePixels	40	static
+../Core/Src/image_processing.c:241:6:ImageProcess_DisplayResult	32	static
