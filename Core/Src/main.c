@@ -65,6 +65,10 @@ MFRC522_t rfID = {&hspi1, GPIOA, CS_Pin, GPIOA, RESET_Pin};
 // RFID state machine: 0 = waiting for card, 1 = card detected (waiting for removal)
 uint8_t rfid_state = 0;
 uint32_t last_rfid_check = 0;
+
+// Door state tracking
+uint8_t door_open = 0;
+uint32_t door_open_time = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,6 +149,17 @@ int main(void)
 	
   while (1)
   {
+	  // Check if door should auto-close after 3 seconds
+	  if (door_open == 1) {
+		  if ((HAL_GetTick() - door_open_time) >= 3000) {
+			  // 3 seconds have passed, close the door
+			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+			  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+			  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 10) / 100);
+			  door_open = 0; // Reset door state
+		  }
+	  }
+	  
 	  // Non-blocking RFID Card Detection (check every 200ms)
 	  if ((HAL_GetTick() - last_rfid_check) >= 200) {
 		  last_rfid_check = HAL_GetTick();
@@ -169,12 +184,16 @@ int main(void)
 						  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 5) / 100);
 						  LCD_DrawString(8, 100, "                            ");
 						  LCD_DrawString(8, 100, "Welcome User A");
+						  door_open = 1; // Set door_open state to on
+						  door_open_time = HAL_GetTick(); // Record when door was opened
 					  }   else if (uid[0] == 0x50 && uid[1] == 0x78 && uid[2] == 0xCD && uid[3] == 0x61) {
 						  // Authorized user - open the door and display welcome message
 						  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
 						  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 5) / 100);
 						  LCD_DrawString(8, 100, "                            ");
 						  LCD_DrawString(8, 100, "Welcome User B");
+						  door_open = 1; // Set door_open state to on
+						  door_open_time = HAL_GetTick(); // Record when door was opened
 					  }
 
 
@@ -195,10 +214,13 @@ int main(void)
 			  // Card detected - check if it's been removed
 			  if (MFRC522_RequestA(&rfID, atqa) != STATUS_OK) {
 				  // Card removed, clear display and reset state
+				  LCD_DrawString(50, 50, (uint8_t *)"                "); // Clear UID display
+				  LCD_DrawString(8, 100, "                            "); // Clear message
 				  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 10) / 100);
-				  rfid_state = 0; // Back to waiting for card
 				  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
 				  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+				  door_open = 0; // Reset door state when card is removed
+				  rfid_state = 0; // Back to waiting for card
 			  }
 		  }
 	  }
@@ -209,9 +231,11 @@ int main(void)
 				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
 				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
 				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 10) / 100);
+				door_open = 0; // Reset door state when manually closed
 			}
 			if (rx_buff[0] == 'A') {
   				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+  				door_open = 1;
   				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 5) / 100);
   				LCD_DrawString(8, 100, "                            ");
   				LCD_DrawString(8, 100, "Welcome User A");
@@ -246,13 +270,17 @@ int main(void)
   				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 5) / 100);
   				LCD_DrawString(8, 100, "                            ");
   				LCD_DrawString(8, 100, "Welcome User A");
-  				haveResponse = 1; //TODO : set the door_open state to on
+  				door_open = 1; // Set door_open state to on
+  				door_open_time = HAL_GetTick(); // Record when door was opened
+  				haveResponse = 1;
   			}
         else if (rx_buff[0] == 'B') {
   				HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
   				__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 5) / 100);
   				LCD_DrawString(8, 100, "                            ");
   				LCD_DrawString(8, 100, "Welcome User B");
+  				door_open = 1; // Set door_open state to on
+  				door_open_time = HAL_GetTick(); // Record when door was opened
   				haveResponse = 1;
   			}
         else if (rx_buff[0] == 'N') {
@@ -271,7 +299,7 @@ int main(void)
       Ov7725_vsync = 0;
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
-      //TODO : close the door with __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, (1596 * 10) / 100); if the door_open state is on
+      // Close the door if it was opened (will auto-close after 3 seconds in main loop)
 		}
     /* USER CODE END WHILE */
 
