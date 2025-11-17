@@ -1,10 +1,12 @@
 # STM32 Smart Home System (access control + internal environment monitoring)
 
 
+this repo is the access control system code
+
+Run the below code when STM32 is turned on and connected to the computer. Make sure the PORT and BAUD RATE are the same.
 
 
-
-Receiver side Python code 
+** Receiver side Python code **
 
 ```
 import serial
